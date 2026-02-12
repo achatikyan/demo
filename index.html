@@ -630,6 +630,20 @@
     }
   ];
 
+  // ===== Normalize request start times to ~50ms after screen start =====
+  allSessions.forEach(s => {
+    s.screens.forEach(scr => {
+      if (!scr.apiCalls || scr.apiCalls.length === 0) return;
+      const oldStart = Math.min(...scr.apiCalls.map(a => a.start));
+      const newStart = scr.startMs + 50;
+      const shift = oldStart - newStart;
+      scr.apiCalls.forEach(a => {
+        a.start = a.start - shift;
+        a.end = a.end - shift;
+      });
+    });
+  });
+
   // ===== Helpers =====
   function msF(n){ return `${Math.round(n)}ms`; }
   function sF(n){ return `${(n/1000).toFixed(2)}s`; }
