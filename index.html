@@ -115,6 +115,77 @@
     }
     .back-btn:hover{background:rgba(138,164,255,0.12);}
 
+    /* Technician header */
+    .tech-header{
+      border:1px solid var(--border);
+      background: rgba(15,23,48,0.60);
+      border-radius:14px;
+      padding:18px 20px;
+      margin-bottom:14px;
+      display:flex;
+      gap:28px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .tech-header .tech-avatar{
+      width:44px;
+      height:44px;
+      border-radius:10px;
+      background: rgba(138,164,255,0.18);
+      border:1px solid rgba(138,164,255,0.25);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:18px;
+      font-weight:700;
+      color:var(--accent);
+      font-family:var(--mono);
+      flex-shrink:0;
+    }
+    .tech-header .tech-info{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .tech-header .tech-name{
+      font-size:16px;
+      font-weight:700;
+      color:var(--text);
+    }
+    .tech-header .tech-meta{
+      font-size:12px;
+      color:var(--muted);
+      display:flex;
+      gap:14px;
+      flex-wrap:wrap;
+      font-family:var(--mono);
+    }
+    .tech-header .tech-stats{
+      display:flex;
+      gap:24px;
+      margin-left:auto;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .tech-header .tech-stat{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:2px;
+    }
+    .tech-header .tech-stat-val{
+      font-size:18px;
+      font-weight:700;
+      color:var(--text);
+      font-family:var(--mono);
+    }
+    .tech-header .tech-stat-label{
+      font-size:9px;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:0.5px;
+    }
+
     /* ===== SESSIONS LIST VIEW ===== */
     .sessions-table{
       width:100%;
@@ -425,6 +496,7 @@
 
 <!-- Sessions List View -->
 <main id="listView">
+  <div class="tech-header" id="techHeader"></div>
   <div class="card">
     <table class="sessions-table">
       <thead><tr>
@@ -630,6 +702,26 @@
     }
   ];
 
+  // ===== Technician & tenant lookup =====
+  const technicians = {
+    "tech_124": { name: "James Wilson", role: "Senior Technician" },
+    "tech_308": { name: "Maria Garcia", role: "Lead Technician" },
+    "tech_567": { name: "Alex Thompson", role: "Technician" },
+    "tech_891": { name: "David Chen", role: "Technician" },
+    "tech_445": { name: "Sarah Mitchell", role: "Senior Technician" },
+    "tech_672": { name: "Robert Davis", role: "Technician" },
+    "tech_233": { name: "Kevin Park", role: "Junior Technician" },
+  };
+  const tenants = {
+    "tenant_8831": "Comfort Air HVAC",
+    "tenant_4420": "ProPlumb Solutions",
+    "tenant_2210": "ClearView Electric",
+    "tenant_5540": "Summit Mechanical",
+    "tenant_6650": "Valley Heating & Air",
+    "tenant_3310": "Precision Plumbing Co",
+    "tenant_7720": "Eagle Home Services",
+  };
+
   // ===== Normalize request start times to ~50ms after screen start =====
   allSessions.forEach(s => {
     s.screens.forEach(scr => {
@@ -655,6 +747,34 @@
   function sessionReqCount(s){ return s.screens.reduce((sum,x)=>sum+(x.apiCalls?.length||0),0); }
   function sessionFailedCount(s){ return s.screens.reduce((sum,x)=>sum+(x.apiCalls?.filter(a=>a.status>=400).length||0),0); }
 
+  // ===== Render technician header =====
+  // For the demo, show info for the first technician / tenant as the "current" context
+  const currentTech = technicians["tech_124"];
+  const currentTenant = tenants["tenant_8831"];
+  const techHeaderEl = document.getElementById("techHeader");
+  const initials = currentTech.name.split(" ").map(w=>w[0]).join("");
+  const totalSess = allSessions.length;
+  const totalFailed = allSessions.reduce((s,x)=>s+sessionFailedCount(x),0);
+  const avgDur = (allSessions.reduce((s,x)=>s+sessionDuration(x),0)/totalSess/1000).toFixed(1);
+  techHeaderEl.innerHTML = `
+    <div class="tech-avatar">${initials}</div>
+    <div class="tech-info">
+      <div class="tech-name">${currentTech.name}</div>
+      <div class="tech-meta">
+        <span>${currentTech.role}</span>
+        <span>·</span>
+        <span>${currentTenant}</span>
+        <span>·</span>
+        <span>tenant_8831</span>
+      </div>
+    </div>
+    <div class="tech-stats">
+      <div class="tech-stat"><span class="tech-stat-val">${totalSess}</span><span class="tech-stat-label">Sessions</span></div>
+      <div class="tech-stat"><span class="tech-stat-val">${avgDur}s</span><span class="tech-stat-label">Avg Duration</span></div>
+      <div class="tech-stat"><span class="tech-stat-val" ${totalFailed>0?'style="color:var(--bad)"':''}>${totalFailed}</span><span class="tech-stat-label">Failed Reqs</span></div>
+    </div>
+  `;
+
   // ===== Sessions List =====
   const sessionsBody = document.getElementById("sessionsBody");
   const listSearch = document.getElementById("listSearch");
@@ -665,7 +785,9 @@
     const q = (listSearch.value||"").trim().toLowerCase();
     const plat = listPlatform.value;
     let arr = allSessions.filter(s => {
-      const hay = [s.id, s.techId, s.tenantId, s.device, s.os, s.appVersion].join(" ").toLowerCase();
+      const techName = (technicians[s.techId]?.name||"").toLowerCase();
+      const tenantName = (tenants[s.tenantId]||"").toLowerCase();
+      const hay = [s.id, s.techId, techName, s.tenantId, tenantName, s.device, s.os, s.appVersion].join(" ").toLowerCase();
       if(q && !hay.includes(q)) return false;
       if(plat !== "all" && getPlatform(s.os) !== plat) return false;
       return true;
@@ -689,7 +811,7 @@
       tr.innerHTML = `
         <td>
           <div class="session-id-cell">${s.id}</div>
-          <div class="date-cell">${s.techId} · ${s.tenantId}</div>
+          <div class="date-cell">${technicians[s.techId]?.name||s.techId} · ${tenants[s.tenantId]||s.tenantId}</div>
         </td>
         <td class="date-cell">${formatDate(s.date)}</td>
         <td><span class="platform-badge ${plClass}">${plLabel}</span></td>
@@ -762,9 +884,9 @@
       <span class="sep"></span>
       <span class="platform-badge ${pc}">${pl}</span>
       <span class="sep"></span>
-      <span class="session-field"><span class="label">Technician</span><span class="value">${session.techId}</span></span>
+      <span class="session-field"><span class="label">Technician</span><span class="value">${technicians[session.techId]?.name||session.techId}</span></span>
       <span class="sep"></span>
-      <span class="session-field"><span class="label">Tenant</span><span class="value">${session.tenantId}</span></span>
+      <span class="session-field"><span class="label">Tenant</span><span class="value">${tenants[session.tenantId]||session.tenantId}</span></span>
       <span class="sep"></span>
       <span class="session-field"><span class="label">App</span><span class="value">${session.appVersion}</span></span>
       <span class="sep"></span>
