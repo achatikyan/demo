@@ -1,0 +1,1133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Session Explorer (Prototype)</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#0f1730;
+      --panel2:#121d3d;
+      --text:#e7ecff;
+      --muted:#a7b1d9;
+      --border:rgba(255,255,255,0.10);
+      --accent:#8aa4ff;
+      --good:#55d28a;
+      --warn:#f7c948;
+      --bad:#ff6b6b;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      background: radial-gradient(1200px 600px at 20% -10%, rgba(138,164,255,0.20), transparent 60%),
+                  radial-gradient(900px 500px at 90% 10%, rgba(85,210,138,0.15), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+    }
+    header{
+      padding:18px 20px;
+      border-bottom:1px solid var(--border);
+      background: rgba(15,23,48,0.72);
+      backdrop-filter: blur(8px);
+      position: sticky;
+      top:0;
+      z-index:10;
+    }
+    .top{
+      display:flex;
+      gap:14px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:space-between;
+    }
+    .title{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    h1{
+      margin:0;
+      font-size:16px;
+      letter-spacing:0.2px;
+    }
+    .subtitle{
+      margin:0;
+      color:var(--muted);
+      font-size:12px;
+    }
+    .controls{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .pill{
+      border:1px solid var(--border);
+      background: rgba(18,29,61,0.65);
+      padding:8px 10px;
+      border-radius:999px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size:12px;
+      color:var(--muted);
+    }
+    .pill input{
+      background:transparent;
+      border:none;
+      outline:none;
+      color:var(--text);
+      width:220px;
+      font-size:12px;
+    }
+    select{
+      background: rgba(18,29,61,0.65);
+      border:1px solid var(--border);
+      color:var(--text);
+      padding:8px 10px;
+      border-radius:10px;
+      font-size:12px;
+      outline:none;
+    }
+    main{
+      padding:18px 20px 40px;
+      max-width: 1200px;
+      margin:0 auto;
+    }
+    .session-banner{
+      display:flex;
+      gap:20px;
+      align-items:center;
+      flex-wrap:wrap;
+      padding:14px 16px;
+      margin-bottom:14px;
+      border:1px solid var(--border);
+      background: rgba(15,23,48,0.60);
+      border-radius:14px;
+      font-size:12px;
+      color:var(--muted);
+    }
+    .session-banner .session-id{
+      font-size:14px;
+      font-weight:650;
+      color:var(--text);
+      font-family:var(--mono);
+    }
+    .session-banner .sep{
+      width:1px;
+      height:18px;
+      background:var(--border);
+    }
+    .session-banner .session-field{
+      display:flex;
+      gap:6px;
+      align-items:center;
+    }
+    .session-banner .session-field .label{
+      color:var(--muted);
+    }
+    .session-banner .session-field .value{
+      color:var(--text);
+      font-family:var(--mono);
+    }
+    .external-link{
+      font-size:11px;
+      font-family:var(--mono);
+      color:var(--accent);
+      text-decoration:none;
+      padding:4px 12px;
+      border-radius:999px;
+      border:1px solid rgba(138,164,255,0.25);
+      background: rgba(138,164,255,0.08);
+      transition: background 120ms ease, border-color 120ms ease;
+    }
+    .external-link:hover{
+      background: rgba(138,164,255,0.18);
+      border-color: rgba(138,164,255,0.45);
+    }
+    /* Summary stats */
+    .summary-stats{
+      display:flex;
+      gap:10px;
+      margin-bottom:14px;
+      flex-wrap:wrap;
+    }
+    .stat-card{
+      flex:1;
+      min-width:140px;
+      border:1px solid var(--border);
+      background: rgba(15,23,48,0.60);
+      border-radius:12px;
+      padding:12px 14px;
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .stat-card .stat-label{
+      font-size:10px;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:0.5px;
+    }
+    .stat-card .stat-value{
+      font-size:18px;
+      font-weight:700;
+      color:var(--text);
+      font-family:var(--mono);
+    }
+    .stat-card .stat-detail{
+      font-size:10px;
+      color:var(--muted);
+      font-family:var(--mono);
+    }
+    .stat-card.has-errors .stat-value{
+      color:var(--bad);
+    }
+
+    /* Platform badge */
+    .platform-badge{
+      font-size:10px;
+      font-weight:650;
+      padding:3px 10px;
+      border-radius:999px;
+      font-family:var(--mono);
+      letter-spacing:0.3px;
+    }
+    .platform-badge.android{
+      background: rgba(85,210,138,0.15);
+      border:1px solid rgba(85,210,138,0.30);
+      color:var(--good);
+    }
+    .platform-badge.ios{
+      background: rgba(138,164,255,0.15);
+      border:1px solid rgba(138,164,255,0.30);
+      color:var(--accent);
+    }
+
+    /* Failed row highlight */
+    .row.has-errors{
+      border-left:3px solid rgba(255,107,107,0.60);
+    }
+    .badge-error{
+      font-size:9px;
+      padding:2px 7px;
+      border-radius:999px;
+      background: rgba(255,107,107,0.15);
+      border:1px solid rgba(255,107,107,0.30);
+      color:var(--bad);
+      font-family:var(--mono);
+      font-weight:600;
+    }
+
+    .card{
+      border:1px solid var(--border);
+      background: rgba(15,23,48,0.60);
+      border-radius:16px;
+      overflow:hidden;
+    }
+
+    /* Timeline header */
+    .timeline-head{
+      padding:14px 14px 10px;
+      border-bottom:1px solid var(--border);
+      display:grid;
+      grid-template-columns: 240px 1fr 170px;
+      gap:12px;
+      align-items:center;
+      background: rgba(18,29,61,0.55);
+    }
+    .head-label{
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    /* Timeline scale */
+    .scale{
+      display:flex;
+      gap:0;
+      height:26px;
+      align-items:flex-end;
+      position:relative;
+      overflow:hidden;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.08);
+      background: rgba(11,16,32,0.55);
+    }
+    .tick{
+      flex:1;
+      border-right:1px dashed rgba(255,255,255,0.08);
+      position:relative;
+      min-width: 40px;
+    }
+    .tick:last-child{border-right:none;}
+    .tick label{
+      position:absolute;
+      bottom:4px;
+      left:6px;
+      font-size:10px;
+      color: rgba(231,236,255,0.55);
+      font-family:var(--mono);
+    }
+
+    /* Rows */
+    .rows{
+      display:flex;
+      flex-direction:column;
+    }
+    .row{
+      display:grid;
+      grid-template-columns: 240px 1fr 170px;
+      gap:12px;
+      padding:12px 14px;
+      border-bottom:1px solid rgba(255,255,255,0.07);
+      cursor:pointer;
+      transition: background 120ms ease;
+    }
+    .row:hover{
+      background: rgba(18,29,61,0.32);
+    }
+    .row:last-child{border-bottom:none;}
+    .screen-name{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .screen-name .name{
+      font-size:13px;
+      font-weight:650;
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+    .badge{
+      font-size:10px;
+      padding:2px 8px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      color:var(--muted);
+      font-family:var(--mono);
+      background: rgba(11,16,32,0.45);
+    }
+    .meta{
+      font-size:11px;
+      color:var(--muted);
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .mono{font-family:var(--mono);}
+
+    .bar-wrap{
+      position:relative;
+      height:26px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.08);
+      background: rgba(11,16,32,0.55);
+      overflow:hidden;
+    }
+    .bar{
+      position:absolute;
+      top:0; bottom:0;
+      border-radius:10px;
+      background: linear-gradient(90deg, rgba(138,164,255,0.75), rgba(138,164,255,0.25));
+      border:1px solid rgba(138,164,255,0.25);
+    }
+    .tti{
+      position:absolute;
+      top:0; bottom:0;
+      width:2px;
+      background: rgba(85,210,138,0.95);
+      box-shadow: 0 0 0 2px rgba(85,210,138,0.15);
+    }
+    .ttr{
+      position:absolute;
+      top:0; bottom:0;
+      width:2px;
+      background: rgba(168,130,255,0.95);
+      box-shadow: 0 0 0 2px rgba(168,130,255,0.15);
+    }
+    .bar-label{
+      position:absolute;
+      right:8px;
+      top:50%;
+      transform: translateY(-50%);
+      font-size:10px;
+      color: rgba(231,236,255,0.75);
+      font-family:var(--mono);
+      pointer-events:none;
+    }
+    .kpis{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      align-items:flex-end;
+      text-align:right;
+      font-size:11px;
+      color:var(--muted);
+    }
+    .kpis strong{color:var(--text); font-weight:650;}
+    .kpi{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      justify-content:flex-end;
+    }
+    .dot{
+      width:8px;
+      height:8px;
+      border-radius:50%;
+      background: var(--accent);
+      opacity:0.9;
+    }
+    .dot.good{background:var(--good)}
+    .dot.warn{background:var(--warn)}
+    .dot.bad{background:var(--bad)}
+
+    /* Expanded details */
+    .details{
+      grid-column: 1 / -1;
+      margin-top:10px;
+      padding:12px;
+      border:1px solid rgba(255,255,255,0.08);
+      background: rgba(11,16,32,0.45);
+      border-radius:14px;
+      display:none;
+    }
+    .row.expanded .details{display:block;}
+    .details-grid{
+      display:grid;
+      grid-template-columns: 1.2fr 1.8fr;
+      gap:12px;
+    }
+    .panel{
+      border:1px solid rgba(255,255,255,0.08);
+      background: rgba(15,23,48,0.55);
+      border-radius:14px;
+      padding:12px;
+    }
+    .panel h3{
+      margin:0 0 10px;
+      font-size:12px;
+      letter-spacing:0.2px;
+      color: rgba(231,236,255,0.85);
+    }
+    .kv{
+      display:grid;
+      grid-template-columns: 160px 1fr;
+      gap:6px 10px;
+      font-size:11px;
+      color:var(--muted);
+    }
+    .kv .k{color: rgba(231,236,255,0.70)}
+    .kv .v{color: rgba(231,236,255,0.92)}
+    .api-list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .api{
+      border:1px solid rgba(255,255,255,0.08);
+      background: rgba(18,29,61,0.35);
+      border-radius:12px;
+      padding:10px;
+    }
+    .api-top{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:flex-start;
+    }
+    .api-name{
+      font-size:11px;
+      color: rgba(231,236,255,0.90);
+      font-family:var(--mono);
+      line-height:1.3;
+      word-break:break-word;
+    }
+    .api-status{
+      font-size:10px;
+      padding:2px 8px;
+      border-radius:999px;
+      font-family:var(--mono);
+      white-space:nowrap;
+    }
+    .api-status.status-good{
+      background: rgba(85,210,138,0.15);
+      border:1px solid rgba(85,210,138,0.30);
+      color:var(--good);
+    }
+    .api-status.status-warn{
+      background: rgba(247,201,72,0.15);
+      border:1px solid rgba(247,201,72,0.30);
+      color:var(--warn);
+    }
+    .api-status.status-bad{
+      background: rgba(255,107,107,0.15);
+      border:1px solid rgba(255,107,107,0.30);
+      color:var(--bad);
+    }
+    .api-bar{
+      margin-top:8px;
+      height:10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.08);
+      background: rgba(11,16,32,0.55);
+      overflow:hidden;
+      position:relative;
+    }
+    .api-bar > i{
+      display:block;
+      height:100%;
+      border-radius:999px;
+      background: linear-gradient(90deg, rgba(247,201,72,0.80), rgba(247,201,72,0.25));
+      border:1px solid rgba(247,201,72,0.22);
+    }
+    .api-clickable{
+      cursor:pointer;
+      transition: border-color 120ms ease, background 120ms ease;
+    }
+    .api-clickable:hover{
+      border-color: rgba(138,164,255,0.30);
+      background: rgba(18,29,61,0.55);
+    }
+    .kibana-link{
+      font-size:10px;
+      color:var(--accent);
+      text-decoration:none;
+      font-family:var(--mono);
+      opacity:0.7;
+      transition: opacity 120ms ease;
+    }
+    .kibana-link:hover{
+      opacity:1;
+      text-decoration:underline;
+    }
+    .api-meta{
+      margin-top:6px;
+      font-size:10px;
+      color: rgba(231,236,255,0.65);
+      display:flex;
+      justify-content:space-between;
+      font-family:var(--mono);
+    }
+
+    /* Waterfall timeline in expanded details */
+    .waterfall-panel{
+      grid-column: 1 / -1;
+      order: -1;
+    }
+    .wf-scale{
+      display:flex;
+      height:20px;
+      align-items:flex-end;
+      position:relative;
+      border-radius:8px 8px 0 0;
+      border:1px solid rgba(255,255,255,0.08);
+      border-bottom:none;
+      background: rgba(11,16,32,0.45);
+      overflow:hidden;
+    }
+    .wf-tick{
+      flex:1;
+      border-right:1px dashed rgba(255,255,255,0.07);
+      position:relative;
+      min-width:30px;
+    }
+    .wf-tick:last-child{border-right:none;}
+    .wf-tick label{
+      position:absolute;
+      bottom:3px;
+      left:4px;
+      font-size:9px;
+      color: rgba(231,236,255,0.45);
+      font-family:var(--mono);
+    }
+    .wf-rows{
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:0 0 8px 8px;
+      background: rgba(11,16,32,0.35);
+      overflow:hidden;
+    }
+    .wf-row{
+      display:grid;
+      grid-template-columns: 280px 1fr;
+      gap:0;
+      border-bottom:1px solid rgba(255,255,255,0.06);
+      align-items:center;
+      min-height:28px;
+    }
+    .wf-row:last-child{border-bottom:none;}
+    .wf-label{
+      font-size:10px;
+      font-family:var(--mono);
+      color: rgba(231,236,255,0.70);
+      padding:4px 10px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      border-right:1px solid rgba(255,255,255,0.06);
+    }
+    .wf-track{
+      position:relative;
+      height:18px;
+      margin:3px 6px 3px 6px;
+      margin-right:80px;
+      overflow:visible;
+    }
+    .wf-bar{
+      position:absolute;
+      top:0; bottom:0;
+      border-radius:4px;
+      min-width:2px;
+    }
+    .wf-bar.screen-dur{
+      background: linear-gradient(90deg, rgba(138,164,255,0.55), rgba(138,164,255,0.18));
+      border:1px solid rgba(138,164,255,0.22);
+    }
+    .wf-bar.screen-tti{
+      background: linear-gradient(90deg, rgba(85,210,138,0.65), rgba(85,210,138,0.20));
+      border:1px solid rgba(85,210,138,0.22);
+    }
+    .wf-bar.screen-ttr{
+      background: linear-gradient(90deg, rgba(168,130,255,0.65), rgba(168,130,255,0.20));
+      border:1px solid rgba(168,130,255,0.22);
+    }
+    .wf-bar.api-bar-item{
+      background: linear-gradient(90deg, rgba(247,201,72,0.70), rgba(247,201,72,0.20));
+      border:1px solid rgba(247,201,72,0.22);
+    }
+    .wf-bar.api-bar-item.bad{
+      background: linear-gradient(90deg, rgba(255,107,107,0.70), rgba(255,107,107,0.20));
+      border:1px solid rgba(255,107,107,0.22);
+    }
+    .wf-bar-val{
+      position:absolute;
+      right:-4px;
+      top:50%;
+      transform: translate(100%, -50%);
+      font-size:9px;
+      color: rgba(231,236,255,0.55);
+      font-family:var(--mono);
+      white-space:nowrap;
+      pointer-events:none;
+    }
+    .wf-legend{
+      display:flex;
+      gap:16px;
+      margin-top:10px;
+      flex-wrap:wrap;
+    }
+    .wf-legend-item{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      font-size:10px;
+      color:var(--muted);
+    }
+    .wf-legend-swatch{
+      width:14px;
+      height:8px;
+      border-radius:3px;
+    }
+
+    @media (max-width: 980px){
+      .timeline-head, .row{grid-template-columns: 1fr;}
+      .kpis{align-items:flex-start; text-align:left;}
+      .details-grid{grid-template-columns: 1fr;}
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <div class="title">
+      <h1>Session Explorer (Prototype)</h1>
+      <p class="subtitle">Technician session timeline · click a screen row to expand details</p>
+    </div>
+    <div class="controls">
+      <div class="pill">
+        <span class="mono">search</span>
+        <input id="search" placeholder="Screen name, route, tag…" />
+      </div>
+      <select id="sort">
+        <option value="start">Sort: Start time</option>
+        <option value="duration">Sort: Duration</option>
+        <option value="tti">Sort: Time to interactive</option>
+        <option value="ttr">Sort: Time to ready</option>
+        <option value="apis">Sort: API count</option>
+      </select>
+      <select id="scale">
+        <option value="10000">Scale: 10s</option>
+        <option value="15000">Scale: 15s</option>
+        <option value="20000">Scale: 20s</option>
+        <option value="30000" selected>Scale: 30s</option>
+      </select>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="session-banner" id="sessionBanner"></div>
+  <div class="summary-stats" id="summaryStats"></div>
+  <div class="card">
+    <div class="timeline-head">
+      <div class="head-label">Screen</div>
+      <div>
+        <div class="head-label" style="margin-bottom:6px;">Timeline</div>
+        <div class="scale" id="scaleTicks"></div>
+      </div>
+      <div class="head-label" style="text-align:right;">KPIs</div>
+    </div>
+    <div class="rows" id="rows"></div>
+  </div>
+</main>
+
+<script>
+  // ----- Mock data model -----
+  // baselineStart is when the app session started (t=0).
+  // Each screen has startMs, endMs, ttiMs (absolute from session start), and apiCalls.
+  const session = {
+    id: "sess_7f3b9c",
+    userId: "user_124",
+    appVersion: "17.2.0",
+    device: "Pixel 7 Pro",
+    os: "Android 15",
+    tenantId: "tenant_8831",
+    baselineStart: 0
+  };
+
+  const data = [
+    {
+      screen: "Sign In",
+      route: "SignInScreenRoute",
+      tags: ["auth"],
+      startMs: 0,
+      endMs: 2800,
+      ttiMs: 1400,
+      ttrMs: 2300,
+      cpuMs: 210,
+      mainThreadBlockedMs: 120,
+      apiCalls: [
+        { name:"query FetchTenant", start: 200, end: 800, status: 200, bytesIn: 4200, bytesOut: 380 },
+        { name:"query FetchGlobalEntities", start: 200, end: 2100, status: 200, bytesIn: 18400, bytesOut: 520 },
+      ]
+    },
+    {
+      screen: "Appointments",
+      route: "AppointmentsScreenRoute",
+      tags: ["core"],
+      startMs: 2800,
+      endMs: 8300,
+      ttiMs: 4400,
+      ttrMs: 7000,
+      cpuMs: 380,
+      mainThreadBlockedMs: 160,
+      apiCalls: [
+        { name:"query FetchJobs", start: 3000, end: 4800, status: 200, bytesIn: 64000, bytesOut: 2100 },
+        { name:"query FetchTimesheets", start: 3000, end: 4250, status: 200, bytesIn: 12400, bytesOut: 680 },
+        { name:"query FetchTechnicianScoreCardTabs", start: 3000, end: 5100, status: 200, bytesIn: 8600, bytesOut: 440 },
+      ]
+    },
+    {
+      screen: "Job Details",
+      route: "JobDetailsScreenRoute",
+      tags: ["core"],
+      startMs: 8300,
+      endMs: 13400,
+      ttiMs: 10150,
+      ttrMs: 13100,
+      cpuMs: 520,
+      mainThreadBlockedMs: 260,
+      apiCalls: [
+        { name:"query FetchJob", start: 8500, end: 10350, status: 200, bytesIn: 98000, bytesOut: 3200 },
+        { name:"query FetchCustomerById", start: 8500, end: 9600, status: 200, bytesIn: 22000, bytesOut: 860 },
+        { name:"query FetchEstimate", start: 8500, end: 12900, status: 500, bytesIn: 1200, bytesOut: 900 },
+      ]
+    },
+    {
+      screen: "Estimate Details",
+      route: "EstimateDetailsScreenRoute",
+      tags: ["core"],
+      startMs: 13400,
+      endMs: 18600,
+      ttiMs: 15300,
+      ttrMs: 18000,
+      cpuMs: 440,
+      mainThreadBlockedMs: 210,
+      apiCalls: [
+        { name:"query FetchEstimate", start: 13600, end: 15200, status: 200, bytesIn: 72000, bytesOut: 2800 },
+        { name:"query GenerateEstimateSummary", start: 13600, end: 16400, status: 200, bytesIn: 38000, bytesOut: 1600 },
+        { name:"query FetchInstalledSystemsByLocation", start: 13600, end: 16000, status: 200, bytesIn: 14200, bytesOut: 720 },
+      ]
+    },
+    {
+      screen: "Forms",
+      route: "FormsScreenRoute",
+      tags: ["forms"],
+      startMs: 18600,
+      endMs: 24800,
+      ttiMs: 20500,
+      ttrMs: 24000,
+      cpuMs: 360,
+      mainThreadBlockedMs: 190,
+      apiCalls: [
+        { name:"query FetchFormTemplate", start: 18800, end: 20200, status: 200, bytesIn: 42000, bytesOut: 1200 },
+        { name:"query FetchFormSubmission", start: 18800, end: 20600, status: 200, bytesIn: 28000, bytesOut: 960 },
+        { name:"query FetchFormData", start: 18800, end: 23700, status: 500, bytesIn: 800, bytesOut: 18600 },
+      ]
+    }
+  ];
+
+  // ----- Render session banner with platform badge -----
+  const platformClass = session.os.toLowerCase().includes("ios") ? "ios" : "android";
+  const platformLabel = platformClass === "ios" ? "iOS" : "Android";
+  const sessionBannerEl = document.getElementById("sessionBanner");
+  sessionBannerEl.innerHTML = `
+    <span class="session-field"><span class="label">Session</span><span class="session-id">${session.id}</span></span>
+    <span class="sep"></span>
+    <span class="platform-badge ${platformClass}">${platformLabel}</span>
+    <span class="sep"></span>
+    <span class="session-field"><span class="label">User</span><span class="value">${session.userId}</span></span>
+    <span class="sep"></span>
+    <span class="session-field"><span class="label">Tenant</span><span class="value">${session.tenantId}</span></span>
+    <span class="sep"></span>
+    <span class="session-field"><span class="label">App</span><span class="value">${session.appVersion}</span></span>
+    <span class="sep"></span>
+    <span class="session-field"><span class="label">Device</span><span class="value">${session.device}</span></span>
+    <span class="sep"></span>
+    <span class="session-field"><span class="label">OS</span><span class="value">${session.os}</span></span>
+    <span class="sep"></span>
+    <span style="display:flex; gap:8px; align-items:center;">
+      <a class="external-link" href="https://app.fullstory.com/ui/8HR7J/session/8404924728912695208:82122949328935022" target="_blank" rel="noopener">FullStory ↗</a>
+      <a class="external-link" href="https://kibana.st.dev/app/r/s/QuuUT" target="_blank" rel="noopener">Kibana ↗</a>
+    </span>
+  `;
+
+  // ----- Render summary stats -----
+  const totalDuration = Math.max(...data.map(d => d.endMs));
+  const totalScreens = data.length;
+  const totalRequests = data.reduce((sum, d) => sum + (d.apiCalls?.length || 0), 0);
+  const failedRequests = data.reduce((sum, d) => sum + (d.apiCalls?.filter(a => a.status >= 400).length || 0), 0);
+  const slowestScreen = data.reduce((a, b) => (b.endMs - b.startMs) > (a.endMs - a.startMs) ? b : a);
+
+  const summaryEl = document.getElementById("summaryStats");
+  summaryEl.innerHTML = `
+    <div class="stat-card">
+      <span class="stat-label">Session Duration</span>
+      <span class="stat-value">${(totalDuration/1000).toFixed(1)}s</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Screens</span>
+      <span class="stat-value">${totalScreens}</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Total Requests</span>
+      <span class="stat-value">${totalRequests}</span>
+    </div>
+    <div class="stat-card ${failedRequests > 0 ? 'has-errors' : ''}">
+      <span class="stat-label">Failed Requests</span>
+      <span class="stat-value">${failedRequests}</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Slowest Screen</span>
+      <span class="stat-value">${((slowestScreen.endMs - slowestScreen.startMs)/1000).toFixed(1)}s</span>
+      <span class="stat-detail">${slowestScreen.screen}</span>
+    </div>
+  `;
+
+  // ----- UI helpers -----
+  const rowsEl = document.getElementById("rows");
+  const searchEl = document.getElementById("search");
+  const sortEl = document.getElementById("sort");
+  const scaleEl = document.getElementById("scale");
+  const scaleTicksEl = document.getElementById("scaleTicks");
+
+  function ms(n){ return `${Math.round(n)}ms`; }
+  function s(n){ return `${(n/1000).toFixed(2)}s`; }
+  function humanBytes(b){
+    if (b < 1024) return `${b}B`;
+    if (b < 1024*1024) return `${(b/1024).toFixed(1)}KB`;
+    return `${(b/(1024*1024)).toFixed(1)}MB`;
+  }
+
+  function classifyTTI(tti){
+    if (tti <= 2500) return "good";
+    if (tti <= 4500) return "warn";
+    return "bad";
+  }
+
+  function computeScale(totalMs){
+    // show 5 ticks
+    const ticks = 5;
+    const per = totalMs / ticks;
+    scaleTicksEl.innerHTML = "";
+    for (let i=0; i<ticks; i++){
+      const div = document.createElement("div");
+      div.className = "tick";
+      const label = document.createElement("label");
+      label.textContent = s(i * per);
+      div.appendChild(label);
+      scaleTicksEl.appendChild(div);
+    }
+  }
+
+  function filteredSorted(){
+    const q = (searchEl.value || "").trim().toLowerCase();
+    let arr = data.filter(x => {
+      const hay = [x.screen, x.route, ...(x.tags||[])].join(" ").toLowerCase();
+      return !q || hay.includes(q);
+    });
+
+    const sortKey = sortEl.value;
+    arr.sort((a,b) => {
+      if (sortKey === "duration") return (b.endMs-b.startMs) - (a.endMs-a.startMs);
+      if (sortKey === "tti") return b.ttiMs - a.ttiMs;
+      if (sortKey === "ttr") return b.ttrMs - a.ttrMs;
+      if (sortKey === "apis") return (b.apiCalls?.length||0) - (a.apiCalls?.length||0);
+      return a.startMs - b.startMs;
+    });
+
+    return arr;
+  }
+
+  function render(){
+    const totalMs = parseInt(scaleEl.value, 10);
+    computeScale(totalMs);
+
+    const arr = filteredSorted();
+    rowsEl.innerHTML = "";
+
+    arr.forEach((x, idx) => {
+      const duration = x.endMs - x.startMs;
+      const leftPct = Math.max(0, Math.min(100, (x.startMs / totalMs) * 100));
+      const widthPct = Math.max(0, Math.min(100-leftPct, (duration / totalMs) * 100));
+      const ttiPct = Math.max(0, Math.min(100, (x.ttiMs / totalMs) * 100));
+      const apiCount = x.apiCalls?.length || 0;
+      const ttiClass = classifyTTI(x.ttiMs - x.startMs);
+
+      // Check for failed requests
+      const failedCount = (x.apiCalls||[]).filter(a => a.status >= 400).length;
+
+      const row = document.createElement("div");
+      row.className = "row" + (failedCount > 0 ? " has-errors" : "");
+      row.setAttribute("data-idx", String(idx));
+
+      // Screen cell
+      const left = document.createElement("div");
+      left.className = "screen-name";
+      left.innerHTML = `
+        <div class="name">
+          ${x.screen}
+          <span class="badge">${x.tags?.[0] || "screen"}</span>
+          ${failedCount > 0 ? `<span class="badge-error">${failedCount} failed</span>` : ''}
+        </div>
+        <div class="meta">
+          <span class="mono">${x.route}</span>
+          <span>start: <span class="mono">${ms(x.startMs)}</span></span>
+          <span>dur: <span class="mono">${ms(duration)}</span></span>
+        </div>
+      `;
+
+      // Timeline cell
+      const ttrPct = Math.max(0, Math.min(100, (x.ttrMs / totalMs) * 100));
+      const mid = document.createElement("div");
+      mid.innerHTML = `
+        <div class="bar-wrap">
+          <div class="bar" style="left:${leftPct}%; width:${widthPct}%;" title="Duration: ${ms(duration)}"></div>
+          <div class="tti" style="left:${ttiPct}%;" title="TTI: ${ms(x.ttiMs - x.startMs)} from screen start"></div>
+          <div class="ttr" style="left:${ttrPct}%;" title="TTR: ${ms(x.ttrMs - x.startMs)} from screen start"></div>
+          <div class="bar-label">${ms(duration)} · TTI ${ms(x.ttiMs - x.startMs)} · TTR ${ms(x.ttrMs - x.startMs)}</div>
+        </div>
+      `;
+
+      // KPI cell
+      const ttrClass = classifyTTI(x.ttrMs - x.startMs); // reuse same thresholds for TTR
+      const right = document.createElement("div");
+      right.className = "kpis";
+      // Total request time: first start to last end
+      const reqStarts = (x.apiCalls||[]).map(a => a.start);
+      const reqEnds = (x.apiCalls||[]).map(a => a.end);
+      const totalReqTime = reqStarts.length > 0 ? Math.max(...reqEnds) - Math.min(...reqStarts) : 0;
+
+      right.innerHTML = `
+        <div class="kpi"><span class="dot ${ttiClass}"></span>TTI <strong class="mono">${ms(x.ttiMs - x.startMs)}</strong></div>
+        <div class="kpi"><span class="dot ${ttrClass}" style="background:rgba(168,130,255,0.9)"></span>TTR <strong class="mono">${ms(x.ttrMs - x.startMs)}</strong></div>
+        <div class="kpi"><span class="dot"></span>APIs <strong class="mono">${apiCount}</strong></div>
+        ${totalReqTime > 0 ? `<div class="kpi"><span class="dot" style="background:var(--warn)"></span>Req time <strong class="mono">${ms(totalReqTime)}</strong></div>` : ''}
+        <div class="kpi"><span class="dot"></span>Blocked <strong class="mono">${ms(x.mainThreadBlockedMs)}</strong></div>
+      `;
+
+      // Details (inline expand)
+      // Build waterfall timeline data
+      const wfStart = x.startMs;
+      const wfEnd = Math.max(x.endMs, x.ttrMs, ...(x.apiCalls||[]).map(a=>a.end));
+      const wfSpan = wfEnd - wfStart || 1;
+      const wfTicks = 6;
+
+      function wfPct(absMs){
+        return Math.max(0, Math.min(100, ((absMs - wfStart) / wfSpan) * 100));
+      }
+
+      let wfScaleHtml = '';
+      for(let t=0; t<wfTicks; t++){
+        const tickMs = wfStart + (wfSpan / wfTicks) * t;
+        wfScaleHtml += `<div class="wf-tick"><label>${ms(Math.round(tickMs))}</label></div>`;
+      }
+
+      // Build waterfall rows
+      let wfRowsHtml = '';
+
+      // Row: Screen duration
+      wfRowsHtml += `
+        <div class="wf-row">
+          <div class="wf-label">Screen duration</div>
+          <div class="wf-track">
+            <div class="wf-bar screen-dur" style="left:${wfPct(x.startMs)}%; width:${wfPct(x.endMs) - wfPct(x.startMs)}%;">
+              <span class="wf-bar-val">${ms(duration)}</span>
+            </div>
+          </div>
+        </div>`;
+
+      // Row: Time to Interactive
+      wfRowsHtml += `
+        <div class="wf-row">
+          <div class="wf-label">Time to Interactive</div>
+          <div class="wf-track">
+            <div class="wf-bar screen-tti" style="left:${wfPct(x.startMs)}%; width:${wfPct(x.ttiMs) - wfPct(x.startMs)}%;">
+              <span class="wf-bar-val">${ms(x.ttiMs - x.startMs)}</span>
+            </div>
+          </div>
+        </div>`;
+
+      // Row: Time to Ready
+      wfRowsHtml += `
+        <div class="wf-row">
+          <div class="wf-label">Time to Ready</div>
+          <div class="wf-track">
+            <div class="wf-bar screen-ttr" style="left:${wfPct(x.startMs)}%; width:${wfPct(x.ttrMs) - wfPct(x.startMs)}%;">
+              <span class="wf-bar-val">${ms(x.ttrMs - x.startMs)}</span>
+            </div>
+          </div>
+        </div>`;
+
+      // Rows: API calls
+      (x.apiCalls||[]).forEach(api => {
+        const apiDur = api.end - api.start;
+        const statusKind = api.status >= 500 ? "bad" : api.status >= 400 ? "warn" : "";
+        wfRowsHtml += `
+          <div class="wf-row">
+            <div class="wf-label" title="${api.name}">${api.name}</div>
+            <div class="wf-track">
+              <div class="wf-bar api-bar-item ${statusKind}" style="left:${wfPct(api.start)}%; width:${Math.max(0.5, wfPct(api.end) - wfPct(api.start))}%;">
+                <span class="wf-bar-val">${api.status} · ${ms(apiDur)}</span>
+              </div>
+            </div>
+          </div>`;
+      });
+
+      const details = document.createElement("div");
+      details.className = "details";
+      details.innerHTML = `
+        <!-- Waterfall timeline -->
+        <div class="panel waterfall-panel" style="margin-bottom:12px;">
+          <h3>Waterfall Timeline</h3>
+          <div class="wf-scale">${wfScaleHtml}</div>
+          <div class="wf-rows">${wfRowsHtml}</div>
+          <div class="wf-legend">
+            <div class="wf-legend-item"><div class="wf-legend-swatch" style="background:rgba(138,164,255,0.55);"></div>Screen duration</div>
+            <div class="wf-legend-item"><div class="wf-legend-swatch" style="background:rgba(85,210,138,0.55);"></div>Time to Interactive</div>
+            <div class="wf-legend-item"><div class="wf-legend-swatch" style="background:rgba(168,130,255,0.55);"></div>Time to Ready</div>
+            <div class="wf-legend-item"><div class="wf-legend-swatch" style="background:rgba(247,201,72,0.55);"></div>API call</div>
+            <div class="wf-legend-item"><div class="wf-legend-swatch" style="background:rgba(255,107,107,0.55);"></div>API error</div>
+          </div>
+        </div>
+
+        <div class="details-grid">
+          <div class="panel">
+            <h3>Screen details</h3>
+            <div class="kv">
+              <div class="k">Session</div><div class="v mono">${session.id}</div>
+              <div class="k">User</div><div class="v mono">${session.userId}</div>
+              <div class="k">Tenant</div><div class="v mono">${session.tenantId}</div>
+              <div class="k">App version</div><div class="v mono">${session.appVersion}</div>
+              <div class="k">Device</div><div class="v">${session.device}</div>
+              <div class="k">OS</div><div class="v">${session.os}</div>
+
+              <div class="k" style="margin-top:6px;">Screen</div><div class="v mono" style="margin-top:6px;">${x.screen}</div>
+              <div class="k">Route</div><div class="v mono">${x.route}</div>
+              <div class="k">Start</div><div class="v mono">${ms(x.startMs)}</div>
+              <div class="k">End</div><div class="v mono">${ms(x.endMs)}</div>
+              <div class="k">Duration</div><div class="v mono">${ms(duration)}</div>
+              <div class="k">Time to interactive</div><div class="v mono">${ms(x.ttiMs - x.startMs)}</div>
+              <div class="k">Time to ready</div><div class="v mono">${ms(x.ttrMs - x.startMs)}</div>
+              <div class="k">CPU time</div><div class="v mono">${ms(x.cpuMs)}</div>
+              <div class="k">Main thread blocked</div><div class="v mono">${ms(x.mainThreadBlockedMs)}</div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h3>API calls during this screen</h3>
+            <div class="api-list">
+              ${
+                apiCount === 0
+                ? `<div class="meta">No API calls recorded for this screen.</div>`
+                : x.apiCalls.map(api => {
+                    const apiDur = api.end - api.start;
+                    const apiLeft = Math.max(0, Math.min(100, (api.start / totalMs)*100));
+                    const apiWidth = Math.max(0, Math.min(100-apiLeft, (apiDur / totalMs)*100));
+                    const statusKind = api.status >= 500 ? "bad" : api.status >= 400 ? "warn" : "good";
+                    return `
+                      <div class="api api-clickable" onclick="event.stopPropagation(); window.open('https://kibana.st.dev/app/r/s/QuuUT','_blank');" title="Click to view in Kibana">
+                        <div class="api-top">
+                          <div class="api-name">${api.name}</div>
+                          <div class="api-status status-${statusKind}">${api.status} · ${ms(apiDur)}</div>
+                        </div>
+                        <div class="api-bar">
+                          <i style="margin-left:${apiLeft}%; width:${apiWidth}%;"></i>
+                        </div>
+                        <div class="api-meta">
+                          <span>start ${ms(api.start)} → end ${ms(api.end)}</span>
+                          <span>in ${humanBytes(api.bytesIn)} · out ${humanBytes(api.bytesOut)}</span>
+                        </div>
+                        <div class="meta" style="margin-top:6px; justify-content:space-between;">
+                          <span><span class="dot ${statusKind}" style="display:inline-block; margin-right:6px;"></span>status: <span class="mono">${statusKind}</span></span>
+                          <a class="kibana-link" href="https://kibana.st.dev/app/r/s/QuuUT" target="_blank" rel="noopener" onclick="event.stopPropagation();">View in Kibana ↗</a>
+                        </div>
+                      </div>
+                    `;
+                  }).join("")
+              }
+            </div>
+          </div>
+        </div>
+      `;
+
+      row.appendChild(left);
+      row.appendChild(mid);
+      row.appendChild(right);
+      row.appendChild(details);
+
+      row.addEventListener("click", (e) => {
+        // allow only one expanded at a time
+        document.querySelectorAll(".row.expanded").forEach(r => {
+          if (r !== row) r.classList.remove("expanded");
+        });
+        row.classList.toggle("expanded");
+      });
+
+      rowsEl.appendChild(row);
+    });
+  }
+
+  // Initial render
+  render();
+  searchEl.addEventListener("input", render);
+  sortEl.addEventListener("change", render);
+  scaleEl.addEventListener("change", render);
+</script>
+</body>
+</html>
