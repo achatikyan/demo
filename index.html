@@ -704,13 +704,13 @@
 
   // ===== Technician & tenant lookup =====
   const technicians = {
-    "tech_124": { name: "James Wilson", role: "Senior Technician" },
-    "tech_308": { name: "Maria Garcia", role: "Lead Technician" },
-    "tech_567": { name: "Alex Thompson", role: "Technician" },
-    "tech_891": { name: "David Chen", role: "Technician" },
-    "tech_445": { name: "Sarah Mitchell", role: "Senior Technician" },
-    "tech_672": { name: "Robert Davis", role: "Technician" },
-    "tech_233": { name: "Kevin Park", role: "Junior Technician" },
+    "tech_124": "James Wilson",
+    "tech_308": "Maria Garcia",
+    "tech_567": "Alex Thompson",
+    "tech_891": "David Chen",
+    "tech_445": "Sarah Mitchell",
+    "tech_672": "Robert Davis",
+    "tech_233": "Kevin Park",
   };
   const tenants = {
     "tenant_8831": "Comfort Air HVAC",
@@ -749,23 +749,21 @@
 
   // ===== Render technician header =====
   // For the demo, show info for the first technician / tenant as the "current" context
-  const currentTech = technicians["tech_124"];
-  const currentTenant = tenants["tenant_8831"];
+  const currentTechName = technicians["tech_124"];
+  const currentTenantName = tenants["tenant_8831"];
   const techHeaderEl = document.getElementById("techHeader");
-  const initials = currentTech.name.split(" ").map(w=>w[0]).join("");
+  const initials = currentTechName.split(" ").map(w=>w[0]).join("");
   const totalSess = allSessions.length;
   const totalFailed = allSessions.reduce((s,x)=>s+sessionFailedCount(x),0);
   const avgDur = (allSessions.reduce((s,x)=>s+sessionDuration(x),0)/totalSess/1000).toFixed(1);
   techHeaderEl.innerHTML = `
     <div class="tech-avatar">${initials}</div>
     <div class="tech-info">
-      <div class="tech-name">${currentTech.name}</div>
+      <div class="tech-name">${currentTechName}</div>
       <div class="tech-meta">
-        <span>${currentTech.role}</span>
+        <span>Technician: <strong>${currentTechName}</strong></span>
         <span>·</span>
-        <span>${currentTenant}</span>
-        <span>·</span>
-        <span>tenant_8831</span>
+        <span>Tenant: <strong>${currentTenantName}</strong></span>
       </div>
     </div>
     <div class="tech-stats">
@@ -785,7 +783,7 @@
     const q = (listSearch.value||"").trim().toLowerCase();
     const plat = listPlatform.value;
     let arr = allSessions.filter(s => {
-      const techName = (technicians[s.techId]?.name||"").toLowerCase();
+      const techName = (technicians[s.techId]||"").toLowerCase();
       const tenantName = (tenants[s.tenantId]||"").toLowerCase();
       const hay = [s.id, s.techId, techName, s.tenantId, tenantName, s.device, s.os, s.appVersion].join(" ").toLowerCase();
       if(q && !hay.includes(q)) return false;
@@ -811,7 +809,7 @@
       tr.innerHTML = `
         <td>
           <div class="session-id-cell">${s.id}</div>
-          <div class="date-cell">${technicians[s.techId]?.name||s.techId} · ${tenants[s.tenantId]||s.tenantId}</div>
+          <div class="date-cell">${technicians[s.techId]||s.techId} · ${tenants[s.tenantId]||s.tenantId}</div>
         </td>
         <td class="date-cell">${formatDate(s.date)}</td>
         <td><span class="platform-badge ${plClass}">${plLabel}</span></td>
@@ -884,7 +882,7 @@
       <span class="sep"></span>
       <span class="platform-badge ${pc}">${pl}</span>
       <span class="sep"></span>
-      <span class="session-field"><span class="label">Technician</span><span class="value">${technicians[session.techId]?.name||session.techId}</span></span>
+      <span class="session-field"><span class="label">Technician</span><span class="value">${technicians[session.techId]||session.techId}</span></span>
       <span class="sep"></span>
       <span class="session-field"><span class="label">Tenant</span><span class="value">${tenants[session.tenantId]||session.tenantId}</span></span>
       <span class="sep"></span>
