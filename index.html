@@ -388,7 +388,7 @@
     <div class="controls" id="listControls">
       <div class="pill">
         <span class="mono">search</span>
-        <input id="listSearch" placeholder="Session ID, user, tenant…" />
+        <input id="listSearch" placeholder="Session ID, technician, tenant…" />
       </div>
       <select id="listPlatform">
         <option value="all">Platform: All</option>
@@ -465,7 +465,7 @@
   // ===== MOCK DATA: Multiple sessions =====
   const allSessions = [
     {
-      id: "sess_7f3b9c", userId: "user_124", appVersion: "17.2.0", device: "Pixel 7 Pro", os: "Android 15", tenantId: "tenant_8831",
+      id: "sess_7f3b9c", techId: "tech_124", appVersion: "17.2.0", device: "Pixel 7 Pro", os: "Android 15", tenantId: "tenant_8831",
       date: "2026-02-12T09:14:22Z",
       screens: [
         { screen:"Sign In", route:"SignInScreenRoute", tags:["auth"], startMs:0, endMs:2800, ttiMs:1400, ttrMs:2300, cpuMs:210, mainThreadBlockedMs:120,
@@ -481,7 +481,7 @@
       ]
     },
     {
-      id: "sess_a1c4e2", userId: "user_308", appVersion: "17.2.0", device: "iPhone 15 Pro", os: "iOS 18.2", tenantId: "tenant_4420",
+      id: "sess_a1c4e2", techId: "tech_308", appVersion: "17.2.0", device: "iPhone 15 Pro", os: "iOS 18.2", tenantId: "tenant_4420",
       date: "2026-02-12T08:42:11Z",
       screens: [
         { screen:"Sign In", route:"SignInScreenRoute", tags:["auth"], startMs:0, endMs:1900, ttiMs:950, ttrMs:1600, cpuMs:140, mainThreadBlockedMs:65,
@@ -493,7 +493,7 @@
       ]
     },
     {
-      id: "sess_d9f821", userId: "user_124", appVersion: "17.1.3", device: "Samsung Galaxy S24", os: "Android 14", tenantId: "tenant_8831",
+      id: "sess_d9f821", techId: "tech_124", appVersion: "17.1.3", device: "Samsung Galaxy S24", os: "Android 14", tenantId: "tenant_8831",
       date: "2026-02-11T14:28:05Z",
       screens: [
         { screen:"Sign In", route:"SignInScreenRoute", tags:["auth"], startMs:0, endMs:3200, ttiMs:1800, ttrMs:2800, cpuMs:250, mainThreadBlockedMs:180,
@@ -507,7 +507,7 @@
       ]
     },
     {
-      id: "sess_b3e7f0", userId: "user_567", appVersion: "17.2.0", device: "iPhone 14", os: "iOS 17.6", tenantId: "tenant_2210",
+      id: "sess_b3e7f0", techId: "tech_567", appVersion: "17.2.0", device: "iPhone 14", os: "iOS 17.6", tenantId: "tenant_2210",
       date: "2026-02-11T11:05:33Z",
       screens: [
         { screen:"Sign In", route:"SignInScreenRoute", tags:["auth"], startMs:0, endMs:2100, ttiMs:1050, ttrMs:1800, cpuMs:160, mainThreadBlockedMs:80,
@@ -517,7 +517,7 @@
       ]
     },
     {
-      id: "sess_e5a912", userId: "user_891", appVersion: "17.1.3", device: "Pixel 8", os: "Android 15", tenantId: "tenant_6650",
+      id: "sess_e5a912", techId: "tech_891", appVersion: "17.1.3", device: "Pixel 8", os: "Android 15", tenantId: "tenant_6650",
       date: "2026-02-10T16:52:18Z",
       screens: [
         { screen:"Sign In", route:"SignInScreenRoute", tags:["auth"], startMs:0, endMs:4200, ttiMs:2400, ttrMs:3800, cpuMs:300, mainThreadBlockedMs:200,
@@ -551,7 +551,7 @@
     const q = (listSearch.value||"").trim().toLowerCase();
     const plat = listPlatform.value;
     let arr = allSessions.filter(s => {
-      const hay = [s.id, s.userId, s.tenantId, s.device, s.os, s.appVersion].join(" ").toLowerCase();
+      const hay = [s.id, s.techId, s.tenantId, s.device, s.os, s.appVersion].join(" ").toLowerCase();
       if(q && !hay.includes(q)) return false;
       if(plat !== "all" && getPlatform(s.os) !== plat) return false;
       return true;
@@ -575,7 +575,7 @@
       tr.innerHTML = `
         <td>
           <div class="session-id-cell">${s.id}</div>
-          <div class="date-cell">${s.userId} · ${s.tenantId}</div>
+          <div class="date-cell">${s.techId} · ${s.tenantId}</div>
         </td>
         <td class="date-cell">${formatDate(s.date)}</td>
         <td><span class="platform-badge ${plClass}">${plLabel}</span></td>
@@ -648,7 +648,7 @@
       <span class="sep"></span>
       <span class="platform-badge ${pc}">${pl}</span>
       <span class="sep"></span>
-      <span class="session-field"><span class="label">User</span><span class="value">${session.userId}</span></span>
+      <span class="session-field"><span class="label">Technician</span><span class="value">${session.techId}</span></span>
       <span class="sep"></span>
       <span class="session-field"><span class="label">Tenant</span><span class="value">${session.tenantId}</span></span>
       <span class="sep"></span>
@@ -780,7 +780,7 @@
         <div class="details-grid">
           <div class="panel"><h3>Screen details</h3><div class="kv">
             <div class="k">Session</div><div class="v mono">${currentSession.id}</div>
-            <div class="k">User</div><div class="v mono">${currentSession.userId}</div>
+            <div class="k">Technician</div><div class="v mono">${currentSession.techId}</div>
             <div class="k">Tenant</div><div class="v mono">${currentSession.tenantId}</div>
             <div class="k">App version</div><div class="v mono">${currentSession.appVersion}</div>
             <div class="k">Device</div><div class="v">${currentSession.device}</div>
