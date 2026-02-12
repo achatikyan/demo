@@ -1086,10 +1086,7 @@
                           <div class="api-name">${api.name}</div>
                           <div class="api-status status-${statusKind}">${api.status} · ${ms(apiDur)}</div>
                         </div>
-                        <div class="api-bar">
-                          <i style="margin-left:${apiLeft}%; width:${apiWidth}%;"></i>
-                        </div>
-                        <div class="api-meta">
+                        <div class="api-meta" style="margin-top:8px;">
                           <span>start ${ms(api.start)} → end ${ms(api.end)}</span>
                           <span>in ${humanBytes(api.bytesIn)} · out ${humanBytes(api.bytesOut)}</span>
                         </div>
